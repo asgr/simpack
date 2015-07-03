@@ -1,0 +1,80 @@
+snapim=function(snapfile,Rvir=162.635,lim=2,outfile=FALSE,energy=TRUE,Tconv=0.9778139,pix=400,enlims=c(1e-3,1e2),denylim=c(0,3),bw=0.05,alpha=0.3,dobound=FALSE,CenBound,SatBound,addbound=FALSE,rseppast,vseppast){
+
+if(energy==FALSE){xscale=1;yscale=1}
+if(energy & dobound==FALSE){xscale=2;yscale=2}
+if(energy & dobound){xscale=3;yscale=2}
+
+temp=snapread(snapfile)
+if(outfile!=FALSE){CairoPNG(file=outfile,width=pix*xscale,height=pix*yscale)}
+if(energy & dobound==FALSE){layout(cbind(c(1,2),c(3,4)));par(oma=c(0,0,0,0))}
+if(energy & dobound){layout(cbind(c(1,2),c(3,4),c(5,6)));par(oma=c(0,0,0,0))}
+plot.new()
+par(mar=c(0,0,0,0))
+plot.window(xlim=c(-lim,lim), ylim=c(-lim,lim),asp=1)
+points(temp$part[,c('x','y')]/Rvir, pch='.', col=hsv(magmap(temp$part[,'ID'])$map, alpha=alpha),cex=3)
+draw.circle(0,0,radius=seq(0,lim*2,by=1),lty=2)
+draw.circle(0,0,radius=seq(0.5,lim*2-0.5,by=1),lty=3)
+abline(h=0,lty=2)
+abline(v=0,lty=2)
+if(dobound){
+points(temp$part[temp$part[,'ID']==CenBound,'x']/Rvir,temp$part[temp$part[,'ID']==CenBound,'y']/Rvir,pch=4,col='black',cex=2,lwd=4)
+points(temp$part[temp$part[,'ID']==SatBound,'x']/Rvir,temp$part[temp$part[,'ID']==SatBound,'y']/Rvir,pch=4,col='black',cex=2,lwd=4)
+points(temp$part[temp$part[,'ID']==CenBound,'x']/Rvir,temp$part[temp$part[,'ID']==CenBound,'y']/Rvir,pch=4,col='red',cex=2)
+points(temp$part[temp$part[,'ID']==SatBound,'x']/Rvir,temp$part[temp$part[,'ID']==SatBound,'y']/Rvir,pch=4,col='blue',cex=2)
+}
+temptime=temp$head$Time*Tconv
+legend('topleft',legend=paste('Time =',round(temptime,4),'Gyrs'))
+
+if(energy){
+tempenergy=addenergy(temp)
+tempenergy$part[,'ke']=(tempenergy$part[,'ke']*Tconv^2)/(temp$part[,'Mass']*Rvir^2)
+tempenergy$part[,'gpe']=(tempenergy$part[,'gpe']*Tconv^2)/(temp$part[,'Mass']*Rvir^2)
+par(mar=c(3.6,3.6,2.1,2.1))
+CenHalo=temp$part[,'ID']<length(temp$part[,'ID'])/2
+magplot(-tempenergy$part[CenHalo,'gpe'],tempenergy$part[CenHalo,'ke'],log='xy',xlim=enlims,ylim=enlims,asp=1,xlab=expression(-GPE/(Rvir/Gyr)^{2}),ylab=expression(KE/(Rvir/Gyr)^{2}),pch='.', col=hsv(magmap(temp$part[,'ID'])$map[CenHalo], alpha=alpha),cex=3)
+abline(0,1,lty=2)
+if(dobound){
+points(-tempenergy$part[temp$part[,'ID']==CenBound,'gpe'],tempenergy$part[temp$part[,'ID']==CenBound,'ke'],pch=4,col='black',cex=2,lwd=4)
+points(-tempenergy$part[temp$part[,'ID']==CenBound,'gpe'],tempenergy$part[temp$part[,'ID']==CenBound,'ke'],pch=4,col='red',cex=2)
+}
+
+par(mar=c(3.6,3.6,2.1,2.1))
+SatHalo=temp$part[,'ID']>length(temp$part[,'ID'])/2
+magplot(-tempenergy$part[SatHalo,'gpe'],tempenergy$part[SatHalo,'ke'],log='xy',xlim=enlims,ylim=enlims,asp=1,xlab=expression(-GPE/(Rvir/Gyr)^{2}),ylab=expression(KE/(Rvir/Gyr)^{2}),pch='.', col=hsv(magmap(temp$part[,'ID'])$map[SatHalo], alpha=alpha),cex=3)
+abline(0,1,lty=2)
+if(dobound){
+points(-tempenergy$part[temp$part[,'ID']==SatBound,'gpe'],tempenergy$part[temp$part[,'ID']==SatBound,'ke'],pch=4,col='black',cex=2,lwd=4)
+points(-tempenergy$part[temp$part[,'ID']==SatBound,'gpe'],tempenergy$part[temp$part[,'ID']==SatBound,'ke'],pch=4,col='blue',cex=2)
+}
+
+par(mar=c(3.6,3.6,2.1,2.1))
+magplot(density(log10(-tempenergy$part[CenHalo,'gpe']),bw=bw),xlim=log10(enlims),ylim=denylim,unlog='x',col='red',lty=1,xlab=expression('|E|'/(Rvir/Gyr)^{2}),ylab='PDF')
+lines(density(log10(tempenergy$part[CenHalo,'ke']),bw=bw),col='red',lty=2)
+lines(density(log10(-tempenergy$part[SatHalo,'gpe']),bw=bw),col='blue',lty=1)
+lines(density(log10(tempenergy$part[SatHalo,'ke']),bw=bw),col='blue',lty=2)
+lines(density(log10(-tempenergy$part[,'gpe']),bw=bw),col='black',lty=1)
+lines(density(log10(tempenergy$part[,'ke']),bw=bw),col='black',lty=2)
+legend('topleft',legend=c('Central','Satellite','GPE','KE'),lty=c(NA,NA,1,2),pch=c(15,15,NA,NA),col=c('red','blue','black','black'))
+}
+if(dobound){
+abline(v=log10(-tempenergy$part[tempenergy$part[,'ID']==CenBound,'gpe']),lty=1,col=hsv(0,alpha=0.5))
+abline(v=log10(tempenergy$part[tempenergy$part[,'ID']==CenBound,'ke']),lty=2,col=hsv(0,alpha=0.5))
+abline(v=log10(-tempenergy$part[tempenergy$part[,'ID']==SatBound,'gpe']),lty=1,col=hsv(2/3,alpha=0.5))
+abline(v=log10(tempenergy$part[tempenergy$part[,'ID']==SatBound,'ke']),lty=2,col=hsv(2/3,alpha=0.5))
+}
+
+if(dobound){
+rsep=(1/Rvir)*sqrt((temp$part[temp$part[,'ID']==CenBound,'x']-temp$part[temp$part[,'ID']==SatBound,'x'])^2+(temp$part[temp$part[,'ID']==CenBound,'y']-temp$part[temp$part[,'ID']==SatBound,'y'])^2+(temp$part[temp$part[,'ID']==CenBound,'z']-temp$part[temp$part[,'ID']==SatBound,'z'])^2)
+vsep=(Tconv/Rvir)*sqrt((temp$part[temp$part[,'ID']==CenBound,'vx']-temp$part[temp$part[,'ID']==SatBound,'vx'])^2+(temp$part[temp$part[,'ID']==CenBound,'vy']-temp$part[temp$part[,'ID']==SatBound,'vy'])^2+(temp$part[temp$part[,'ID']==CenBound,'vz']-temp$part[temp$part[,'ID']==SatBound,'vz'])^2)
+
+par(mar=c(3.6,3.6,2.1,2.1))
+magplot(temptime,rsep,xlim=c(0,14),ylim=c(0,lim),xlab='Time / Gyrs',ylab='Halo Spatial Separation / Rvir',pch=4,col='black',cex=2,lwd=4)
+if(addbound){lines(vseppast)}
+magplot(temptime,vsep,xlim=c(0,14),ylim=c(0,lim),xlab='Time / Gyrs',ylab='Halo Velocity Separation / (Rvir/Gyr)',pch=4,col='black',cex=2,lwd=4)
+if(addbound){lines(rseppast)}
+}
+
+if(outfile!=FALSE){dev.off()}
+if(dobound){return=c(temptime,rsep,vsep)}
+}
+

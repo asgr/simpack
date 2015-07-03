@@ -1,0 +1,11 @@
+Package: simpack
+Type: Package
+Title: Functions for calculating orbits and interacting with the Gadget N-body code
+Version: 0.13
+Date: 2013-06-19
+Author: Aaron Robotham, Chris Power
+Maintainer: Aaron Robotham <aaron.robotham@uwa.edu.au>
+Description: General purpose orbital functions. Functions for operating with, and generating, Gadget binary snapshots. This includes read/write functions and IC generators.
+License: GPL-2
+Depends: R (>= 2.13), magicaxis, plotrix
+NeedsCompilation: yes

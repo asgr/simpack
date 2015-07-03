@@ -1,0 +1,6 @@
+exportPattern("^[[:alpha:]]+")
+
+useDynLib(simpack)
+
+import("plotrix")
+import("magicaxis")
